@@ -2,11 +2,14 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface User {
-  id: string;
+  id: number;
   name: string;
   email: string;
+  mobile: string;
   role: string;
-  avatar?: string;
+  profile_image: string;
+  isverified: boolean;
+  created_at: string;
 }
 
 interface UserAuthState {
@@ -25,8 +28,8 @@ const userAuth = create<UserAuthState>()(
       updateUser: (updatedUser) => set({ user: updatedUser }),
     }),
     {
-      name: "Astan-storage",
-      getStorage: () => localStorage,
+      name: "Astan-storage", 
+      getStorage: () => localStorage,  
     }
   )
 );

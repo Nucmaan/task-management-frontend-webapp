@@ -23,6 +23,7 @@ import { useRouter, usePathname } from "next/navigation";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import userAuth from "@/myStore/userAuth";
+import axios from "axios";
 
 export default function Voice0verArtistSidebar() {
   const router = useRouter();
@@ -31,14 +32,25 @@ export default function Voice0verArtistSidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  const logoutUser = userAuth((state) => state.logoutUser);
+  const { logoutUser } = userAuth();
 
+  const userService = process.env.NEXT_PUBLIC_USER_SERVICE_URL;
 
-  const handleLogout = () => {
-    logoutUser(); 
-    toast.success("Logged out successfully.");
-    router.replace("/");
-    setIsOpen(false);
+  const handleLogout = async() => {
+    try {
+      const response = await axios.get(`${userService}/api/auth/logout`, 
+         { withCredentials: true }
+      );
+      if (response.status === 200) {
+        toast.success(response.data.message);
+        logoutUser(); 
+        router.replace("/");
+        return; 
+      }
+    } catch (error : any) {
+      const message = error.response?.data?.error || "Server error";
+      toast.error(message);
+    }
   };
 
   useEffect(() => {

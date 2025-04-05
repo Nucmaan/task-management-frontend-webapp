@@ -5,11 +5,11 @@ import { Toaster } from "react-hot-toast";
 export default function ToasterClient() {
   return (
     <Toaster
-      position="top-right" 
+      position="top-center" 
       toastOptions={{
         success: {
           style: {
-            background: "#33d1ff",
+            background: "#ff4e00",
             color: "white",
           },
         },

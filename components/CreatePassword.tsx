@@ -1,32 +1,58 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
+import axios from "axios";
 
 export default function CreatePassword() {
   const router = useRouter();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  const [sending, setSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const userService = process.env.NEXT_PUBLIC_USER_SERVICE_URL;
+
+  const { token } = useParams();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-     if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match.");
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match..");
       return;
     }
 
     if (newPassword.length < 8) {
-      setPasswordError("Password must be at least 8 characters long.");
+      toast.error("Password must be at least 8 characters long.");
       return;
     }
 
-    setPasswordError("");
+    setSending(true);
 
-     alert("Password has been reset successfully.");
-    router.push("/");
+    try {
+      const response = await axios.post(
+        `${userService}/api/auth/reset-password`,
+        {
+          token,
+          newPassword: newPassword,
+        },
+        { withCredentials: true }
+      );
+      if (response.status === 200) {
+        toast.success(response.data.message);
+        router.replace("/");
+        return;
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.error || "Server error";
+      toast.error(message);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -56,7 +82,7 @@ export default function CreatePassword() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-           <div className="relative">
+          <div className="relative">
             <label htmlFor="newPassword" className="sr-only">
               New Password
             </label>
@@ -74,7 +100,6 @@ export default function CreatePassword() {
             />
           </div>
 
-          {/* Confirm Password Field */}
           <div className="relative">
             <label htmlFor="confirmPassword" className="sr-only">
               Confirm Password
@@ -93,20 +118,13 @@ export default function CreatePassword() {
             />
           </div>
 
-          {/* Error Message */}
-          {passwordError && (
-            <p className="text-sm text-red-500 text-center -mt-2">{passwordError}</p>
-          )}
-
-          {/* Submit Button */}
           <button
             type="submit"
             className="w-full bg-orange-500 text-white py-3 rounded-md font-medium hover:bg-orange-600 transition duration-300"
           >
-            Reset Password
+            {sending ? "processing wait..." : "Reset Password"}
           </button>
 
-          {/* Back to Login */}
           <div className="text-center mt-4">
             <Link
               href="/"
@@ -121,7 +139,6 @@ export default function CreatePassword() {
   );
 }
 
-// Lock Icon Component
 const LockIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"

@@ -16,22 +16,24 @@ import {
 import toast from "react-hot-toast";
 import LoadingReuse from "@/components/LoadingReuse";
 import userAuth from "@/myStore/userAuth";
+import axios from "axios";
 
-// Props typing for children
-interface AdminLayoutProps {
+ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
-  const user = {
-    role : "Admin"
-  }
+
+  const user = userAuth((state) => state.user);
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const logoutUser = userAuth((state) => state.logoutUser);
+  const { logoutUser } = userAuth();;
+
+  const userService = process.env.NEXT_PUBLIC_USER_SERVICE_URL;
 
 
   useEffect(() => {
@@ -60,11 +62,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     };
   }, []);
 
-  const handleLogout = () => {
-    logoutUser(); 
-    toast.success("Logged out successfully.");
-    router.replace("/");
-    setIsDropdownOpen(false);
+  const handleLogout = async() => {
+    try {
+      const response = await axios.get(`${userService}/api/auth/logout`, 
+         { withCredentials: true }
+      );
+      if (response.status === 200) {
+        toast.success(response.data.message);
+        logoutUser(); 
+        router.replace("/");
+        return; 
+      }
+    } catch (error : any) {
+      const message = error.response?.data?.error || "Server error";
+      toast.error(message);
+    }
+
   };
 
   if (!isHydrated) {
@@ -89,9 +102,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   {user?.name || "Admin"}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-[#ff4e00] flex items-center justify-center text-white">
-                  {user?.profilePic ? (
+                  {user?.profile_image ?  (
                     <img
-                      src={user.profilePic}
+                      src={user.profile_image}
                       alt={user.name || "Admin"}
                       className="w-8 h-8 rounded-full object-cover"
                     />
@@ -155,8 +168,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <AdminSideBar />
         </div>
 
-        {/* Main Content */}
-        <main className="flex-grow p-4 md:p-6 overflow-y-auto md:ml-[260px]">
+         <main className="flex-grow p-4 md:p-6 overflow-y-auto md:ml-[260px]">
           <div className="container mx-auto max-w-7xl">{children}</div>
         </main>
       </div>

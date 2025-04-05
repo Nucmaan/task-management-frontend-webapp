@@ -14,8 +14,9 @@ import {
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import LoadingReuse from "@/components/LoadingReuse";
+ import TranslatorSidebar from "@/components/TranslatorSidebar";
 import userAuth from "@/myStore/userAuth";
-import TranslatorSidebar from "@/components/TranslatorSidebar";
+import axios from "axios";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -24,19 +25,20 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
-  const user = {
-    role : "Admin"
-  }
+  const user = userAuth((state) => state.user);
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const logoutUser = userAuth((state) => state.logoutUser);
+  const { logoutUser } = userAuth();;
+
+  const userService = process.env.NEXT_PUBLIC_USER_SERVICE_URL;
 
   useEffect(() => {
     if (user) {
       setIsHydrated(true);
 
-      if (user?.role !== "Admin") {
+      if (user?.role !== "Translator") {
         router.push("/");
       }
     }
@@ -58,18 +60,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     };
   }, []);
 
-  const handleLogout = () => {
-    logoutUser(); 
-    toast.success("Logged out successfully.");
-    router.replace("/");
-    setIsDropdownOpen(false);
+  const handleLogout = async() => {
+    try {
+      const response = await axios.get(`${userService}/api/auth/logout`, 
+         { withCredentials: true }
+      );
+      if (response.status === 200) {
+        toast.success(response.data.message);
+        logoutUser(); 
+        router.replace("/");
+        return; 
+      }
+    } catch (error : any) {
+      const message = error.response?.data?.error || "Server error";
+      toast.error(message);
+    }
   };
 
   if (!isHydrated) {
     return <LoadingReuse />;
   }
 
-  if (user?.role !== "Admin") {
+  if (user?.role !== "Translator") {
     return null;
   }
 
@@ -87,9 +99,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   {user?.name || "Admin"}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-[#ff4e00] flex items-center justify-center text-white">
-                  {user?.profilePic ? (
+                  {user?.profile_image ? (
                     <img
-                      src={user.profilePic}
+                      src={user.profile_image}
                       alt={user.name || "Admin"}
                       className="w-8 h-8 rounded-full object-cover"
                     />
@@ -115,14 +127,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       {user?.email || "admin@example.com"}
                     </p>
                   </div>
-
-                  <Link
-                    href="/Admin/Profile"
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <FaUserCircle className="mr-3 text-[#ff4e00]" size={16} />
-                    Profile
-                  </Link>
 
                   <Link
                     href="/Admin/Setting"
@@ -153,8 +157,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <TranslatorSidebar />
         </div>
 
-        {/* Main Content */}
-        <main className="flex-grow p-4 md:p-6 overflow-y-auto md:ml-[260px]">
+         <main className="flex-grow p-4 md:p-6 overflow-y-auto md:ml-[260px]">
           <div className="container mx-auto max-w-7xl">{children}</div>
         </main>
       </div>

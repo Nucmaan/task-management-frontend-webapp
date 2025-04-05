@@ -3,21 +3,46 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
+import axios from "axios";
 
 export default function ForgetPassword() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
 
+  const userService = process.env.NEXT_PUBLIC_USER_SERVICE_URL;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!email) {
+      toast.success("valid email address is required");
+      return;
+    }
+
     setSending(true);
 
-     setTimeout(() => {
-      alert("Reset link sent to your email!");
+    try {
+      const response = await axios.post(
+        `${userService}/api/auth/forgot-password`,
+        { email },
+        { withCredentials: true }
+      );
+      if (response.status === 200) {
+        setEmail("");
+        toast.success(response.data.message);
+        setEmail("");
+        return;
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.error || "Server error";
+      toast.error(message);
+    } finally {
       setSending(false);
-      router.push("/");
-    }, 1000);
+    }
   };
 
   return (
@@ -43,9 +68,16 @@ export default function ForgetPassword() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
-            <label htmlFor="email" className="sr-only">Email</label>
+            <label htmlFor="email" className="sr-only">
+              Email
+            </label>
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path d="M16 12a4 4 0 10-8 0 4 4 0 008 0z" />
                 <path d="M12 14v6m0 0H6a2 2 0 01-2-2v-6a2 2 0 012-2h12a2 2 0 012 2v6a2 2 0 01-2 2h-6z" />
               </svg>
@@ -65,14 +97,19 @@ export default function ForgetPassword() {
             type="submit"
             disabled={sending}
             className={`w-full py-3 rounded-md text-white font-medium ${
-              sending ? "bg-orange-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
+              sending
+                ? "bg-orange-400 cursor-not-allowed"
+                : "bg-orange-500 hover:bg-orange-600"
             } transition`}
           >
             {sending ? "Sending..." : "Send Reset Link"}
           </button>
 
           <div className="text-center">
-            <Link href="/" className="text-sm text-gray-600 hover:text-orange-500">
+            <Link
+              href="/"
+              className="text-sm text-gray-600 hover:text-orange-500"
+            >
               Back to Login
             </Link>
           </div>
