@@ -1,58 +1,169 @@
-'use client'
+"use client";
 
-import React from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import AdminSideBar from "@/components/AdminSideBar";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState, useRef } from "react";
+import {
+  FaBell,
+  FaSearch,
+  FaUser,
+  FaUserCircle,
+  FaCog,
+  FaSignOutAlt,
+  FaChevronDown,
+} from "react-icons/fa";
+import toast from "react-hot-toast";
+import LoadingReuse from "@/components/LoadingReuse";
+import userAuth from "@/myStore/userAuth";
 
-const menuItems = [
-  { icon: '📊', label: 'Dashboard', href: '/Admin' },
-  { icon: '👤', label: 'User Management', href: '/Admin/users' },
-  { icon: '📋', label: 'Task Management', href: '/Admin/tasks' },
-  { icon: '📑', label: 'Reports & Analytics', href: '/Admin/reports' },
-  { icon: '🔔', label: 'Notifications', href: '/Admin/notifications' },
-  { icon: '💰', label: 'Payroll & Commissions', href: '/Admin/payroll' },
-  { icon: '⚙️', label: 'Settings', href: '/Admin/settings' },
-]
+// Props typing for children
+interface AdminLayoutProps {
+  children: React.ReactNode;
+}
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const pathname = usePathname()
+export default function AdminLayout({ children }: AdminLayoutProps) {
+  const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
+  const user = {
+    role : "Admin"
+  }
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const logoutUser = userAuth((state) => state.logoutUser);
+
+
+  useEffect(() => {
+    if (user) {
+      setIsHydrated(true);
+
+      if (user?.role !== "Admin") {
+        router.push("/");
+      }
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    logoutUser(); 
+    toast.success("Logged out successfully.");
+    router.replace("/");
+    setIsDropdownOpen(false);
+  };
+
+  if (!isHydrated) {
+    return <LoadingReuse />;
+  }
+
+  if (user?.role !== "Admin") {
+    return null;
+  }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
-        <div className="p-4">
-          <h1 className="text-2xl font-bold text-gray-800">Admin Panel</h1>
-        </div>
-        <nav className="mt-4">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors duration-200 ${
-                  isActive ? 'bg-blue-50 text-blue-600' : ''
-                }`}
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-10 md:pl-[260px] md:ml-[262px]">
+        <div className="flex items-center justify-end h-16 px-4">
+          <div className="flex items-center space-x-4">
+            <div className="relative" ref={dropdownRef}>
+              <div
+                className="flex items-center cursor-pointer"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               >
-                <span className="mr-3">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
+                <span className="hidden md:block mr-2 text-sm font-medium text-gray-700">
+                  {user?.name || "Admin"}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-[#ff4e00] flex items-center justify-center text-white">
+                  {user?.profilePic ? (
+                    <img
+                      src={user.profilePic}
+                      alt={user.name || "Admin"}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <FaUser size={14} />
+                  )}
+                </div>
+                <FaChevronDown
+                  className={`ml-1 text-gray-500 transition-transform duration-200 ${
+                    isDropdownOpen ? "rotate-180" : ""
+                  }`}
+                  size={12}
+                />
+              </div>
+
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {user?.name || "Admin"}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {user?.email || "admin@example.com"}
+                    </p>
+                  </div>
+
+                  <Link
+                    href="/Admin/Profile"
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <FaUserCircle className="mr-3 text-[#ff4e00]" size={16} />
+                    Profile
+                  </Link>
+
+                  <Link
+                    href="/Admin/Setting"
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <FaCog className="mr-3 text-[#ff4e00]" size={16} />
+                    Settings
+                  </Link>
+
+                  <div className="border-t border-gray-100 my-1"></div>
+
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <FaSignOutAlt className="mr-3 text-[#ff4e00]" size={16} />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex flex-grow pt-16">
+        <div className="fixed left-0 top-0 h-full w-[260px] flex-shrink-0 z-30">
+          <AdminSideBar />
+        </div>
+
+        {/* Main Content */}
+        <main className="flex-grow p-4 md:p-6 overflow-y-auto md:ml-[260px]">
+          <div className="container mx-auto max-w-7xl">{children}</div>
+        </main>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-8">
-          {children}
-        </div>
-      </div>
+      <footer className="bg-white py-4 border-t border-gray-200 text-center text-sm text-gray-600 md:ml-[260px]">
+        <p>© {new Date().getFullYear()} Astaan. All rights reserved.</p>
+      </footer>
     </div>
-  )
+  );
 }
