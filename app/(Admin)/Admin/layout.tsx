@@ -130,14 +130,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       {user?.email || "admin@example.com"}
                     </p>
                   </div>
-
-                  <Link
-                    href="/Admin/Profile"
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <FaUserCircle className="mr-3 text-[#ff4e00]" size={16} />
-                    Profile
-                  </Link>
+ 
 
                   <Link
                     href="/Admin/Setting"
